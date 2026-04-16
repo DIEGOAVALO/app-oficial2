@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafor Stylist 💅</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #ffe6f2;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            background-color: #ffe6f2;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: #cc0066;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #ffcce6;
+            color: #cc0066;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .btn-danger {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: #fff0f5;
+            margin: 15% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 350px;
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .modal-content input, .modal-content select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            border: 1px solid #cc0066;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        
+        .modal-content button {
+            background-color: #cc0066;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .horario-item {
+            background-color: #ffcce6;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .horario-item:hover {
+            background-color: #ff99cc;
+        }
+        
+        .success-message {
+            color: #009900;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .error-message {
+            color: #ff0000;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💅 Mafor Stylist 💅</h1>
+        </div>
+        
+        <button class="btn" onclick="abrirAgendar()">📅 Agendar cita</button>
+        <button class="btn" onclick="verHorarios()">📋 Ver horarios libres</button>
+        <button class="btn" onclick="verPrecios()">💰 Ver precios</button>
+        <button class="btn" onclick="abrirMapa()">📍 Ver ubicación (Google Maps)</button>
+        <button class="btn btn-danger" onclick="cerrarApp()">❌ Salir</button>
+    </div>
+    
+    <!-- Modal de Precios -->
+    <div id="modalPrecios" class="modal">
+        <div class="modal-content">
+            <h2>✨ Nuestros Servicios ✨</h2>
+            <p><strong>💅 Uñas Acrílicas</strong> - $350</p>
+            <p><strong>✨ Gel Semipermanente</strong> - $150</p>
+            <p><strong>💎 Gel Rubber</strong> - $250</p>
+            <p><strong>🌸 Manicura</strong> - $250</p>
+            <button onclick="cerrarModal('modalPrecios')">⬅ Regresar</button>
+        </div>
+    </div>
+    
+    <!-- Modal de Agendar Cita -->
+    <div id="modalAgendar" class="modal">
+        <div class="modal-content">
+            <h2>📅 Agendar Cita</h2>
+            <input type="text" id="nombreCliente" placeholder="Tu nombre" required>
+            <input type="tel" id="telefonoCliente" placeholder="Tu teléfono" required>
+            <select id="servicioCliente">
+                <option value="">Selecciona un servicio</option>
+                <option value="Uñas Acrílicas">Uñas Acrílicas - $350</option>
+                <option value="Gel Semipermanente">Gel Semipermanente - $150</option>
+                <option value="Gel Rubber">Gel Rubber - $250</option>
+                <option value="Manicura">Manicura - $250</option>
+            </select>
+            <select id="horarioCliente">
+                <option value="">Selecciona un horario</option>
+            </select>
+            <button onclick="guardarCita()">✅ Agendar cita</button>
+            <button onclick="cerrarModal('modalAgendar')">❌ Cancelar</button>
+            <div id="mensajeAgendar"></div>
+        </div>
+    </div>
+    
+    <!-- Modal de Horarios -->
+    <div id="modalHorarios" class="modal">
+        <div class="modal-content">
+            <h2>📋 Horarios Libres</h2>
+            <div id="listaHorarios"></div>
+            <button onclick="cerrarModal('modalHorarios')">⬅ Regresar</button>
+        </div>
+    </div>
+
+    <script>
+        // Base de datos de citas (simulada)
+        let citas = JSON.parse(localStorage.getItem('citasMafor')) || [];
+        
+        // Horarios disponibles (de lunes a sábado, 9am a 7pm)
+        const horariosDisponibles = [
+            "09:00", "10:00", "11:00", "12:00", "13:00", 
+            "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"
+        ];
+        
+        // Días disponibles
+        const diasDisponibles = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+        
+        // Función para obtener fecha actual en formato YYYY-MM-DD
+        function getFechaActual() {
+            const hoy = new Date();
+            const año = hoy.getFullYear();
+            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoy.getDate()).padStart(2, '0');
+            return `${año}-${mes}-${dia}`;
+        }
+        
+        // Función para obtener horarios libres
+        function obtenerHorariosLibres(fecha) {
+            const citasOcupadas = citas.filter(cita => cita.fecha === fecha).map(cita => cita.horario);
+            return horariosDisponibles.filter(horario => !citasOcupadas.includes(horario));
+        }
+        
+        // Abrir modal de agendar cita
+        function abrirAgendar() {
+            const modal = document.getElementById('modalAgendar');
+            const horarioSelect = document.getElementById('horarioCliente');
+            
+            // Limpiar campos
+            document.getElementById('nombreCliente').value = '';
+            document.getElementById('telefonoCliente').value = '';
+            document.getElementById('servicioCliente').value = '';
+            document.getElementById('mensajeAgendar').innerHTML = '';
+            
+            // Llenar horarios disponibles para hoy
+            const fechaHoy = getFechaActual();
+            const horariosLibres = obtenerHorariosLibres(fechaHoy);
+            
+            horarioSelect.innerHTML = '<option value="">Selecciona un horario</option>';
+            horariosLibres.forEach(horario => {
+                const option = document.createElement('option');
+                option.value = horario;
+                option.textContent = `${horario} - Disponible`;
+                horarioSelect.appendChild(option);
+            });
+            
+            if (horariosLibres.length === 0) {
+                horarioSelect.innerHTML = '<option value="">No hay horarios disponibles para hoy</option>';
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        // Guardar cita
+        function guardarCita() {
+            const nombre = document.getElementById('nombreCliente').value.trim();
+            const telefono = document.getElementById('telefonoCliente').value.trim();
+            const servicio = document.getElementById('servicioCliente').value;
+            const horario = document.getElementById('horarioCliente').value;
+            const mensajeDiv = document.getElementById('mensajeAgendar');
+            
+            if (!nombre || !telefono || !servicio || !horario) {
+                mensajeDiv.innerHTML = '<p class="error-message">❌ Por favor completa todos los campos</p>';
+                return;
+            }
+            
+            const fecha = getFechaActual();
+            const nuevaCita = {
+                id: Date.now(),
+                nombre: nombre,
+                telefono: telefono,
+                servicio: servicio,
+                fecha: fecha,
+                horario: horario
+            };
+            
+            citas.push(nuevaCita);
+            localStorage.setItem('citasMafor', JSON.stringify(citas));
+            
+            mensajeDiv.innerHTML = '<p class="success-message">✅ ¡Cita agendada con éxito!</p>';
+            
+            // Limpiar campos después de 2 segundos y cerrar modal
+            setTimeout(() => {
+                cerrarModal('modalAgendar');
+                mostrarConfirmacionCita(nuevaCita);
+            }, 2000);
+        }
+        
+        // Mostrar confirmación de cita
+        function mostrarConfirmacionCita(cita) {
+            alert(`✨ ¡Cita confirmada! ✨\n\n👤 Cliente: ${cita.nombre}\n💅 Servicio: ${cita.servicio}\n📅 Fecha: ${cita.fecha}\n⏰ Hora: ${cita.horario}\n\n¡Te esperamos! 💕`);
+        }
+        
+        // Ver horarios libres
+        function verHorarios() {
+            const modal = document.getElementById('modalHorarios');
+            const listaHorarios = document.getElementById('listaHorarios');
+            
+            const fechaHoy = getFechaActual();
+            const horariosLibres = obtenerHorariosLibres(fechaHoy);
+            const citasHoy = citas.filter(cita => cita.fecha === fechaHoy);
+            
+            let html = `<h3>📅 Horarios para hoy (${fechaHoy})</h3>`;
+            
+            if (horariosLibres.length > 0) {
+                html += `<h4>✅ Horarios disponibles:</h4>`;
+                horariosLibres.forEach(horario => {
+                    html += `<div class="horario-item">⏰ ${horario} - Disponible</div>`;
+                });
+            } else {
+                html += `<p class="error-message">❌ No hay horarios disponibles para hoy</p>`;
+            }
+            
+            if (citasHoy.length > 0) {
+                html += `<h4>📋 Citas agendadas hoy:</h4>`;
+                citasHoy.forEach(cita => {
+                    html += `<div class="horario-item" style="background-color:#ff9999">⏰ ${cita.horario} - ${cita.nombre} (${cita.servicio})</div>`;
+                });
+            }
+            
+            html += `<p><small>💡 Los horarios son de 9:00 AM a 7:00 PM, de Lunes a Sábado</small></p>`;
+            
+            listaHorarios.innerHTML = html;
+            modal.style.display = 'block';
+        }
+        
+        // Ver precios
+        function verPrecios() {
+            document.getElementById('modalPrecios').style.display = 'block';
+        }
+        
+        // Abrir mapa
+        function abrirMapa() {
+            window.open("https://www.google.com/maps/search/?api=1&query=25+norte+7204+La+Loma+Puebla", "_blank");
+        }
+        
+        // Cerrar app
+        function cerrarApp() {
+            if (confirm('¿Estás segura de que quieres salir de la aplicación?')) {
+                window.close();
+                // Si window.close() no funciona (por políticas del navegador)
+                alert('Por favor cierra esta pestaña manualmente');
+            }
+        }
+        
+        // Cerrar modal
+        function cerrarModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+        
+        // Cerrar modal haciendo clic fuera de él
+        window.onclick = function(event) {
+            const modals = document.getElementsByClassName('modal');
+            for (let modal of modals) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        }
+        
+        // Cargar datos guardados al iniciar
+        console.log('💅 Mafor Stylist - Aplicación lista');
+        console.log(`📋 ${citas.length} citas guardadas en total`);
+    </script>
+</body>
+</html>
